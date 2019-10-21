@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace Unity.Platforms.Web
@@ -25,6 +26,12 @@ namespace Unity.Platforms.Web
                 buildTarget.Directory.FullName,
                 buildTarget.Name,
                 19050);
+        }
+
+        public override ShellProcessOutput RunTestMode(string exeName, string workingDirPath, int timeout)
+        {
+            //TODO not implemented, Web tests are not supported yet
+            throw new NotSupportedException();
         }
     }
 
