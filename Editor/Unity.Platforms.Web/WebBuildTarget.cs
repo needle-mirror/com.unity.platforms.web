@@ -5,20 +5,9 @@ namespace Unity.Platforms.Web
 {
     public abstract class WebBuildTarget : BuildTarget
     {
-        protected string GetPlatformName()
-        {
-            return "Web";
-        }
-
-        public override string GetUnityPlatformName()
-        {
-            return "WebGL";
-        }
-
-        public override string GetExecutableExtension()
-        {
-            return ".html";
-        }
+        public override bool CanBuild => true;
+        public override string UnityPlatformName => "WebGL";
+        public override string ExecutableExtension => ".html";
 
         public override bool Run(FileInfo buildTarget)
         {
@@ -37,27 +26,13 @@ namespace Unity.Platforms.Web
 
     class AsmJSBuildTarget : WebBuildTarget
     {
-        public override string GetDisplayName()
-        {
-            return GetPlatformName() + " (AsmJS)";
-        }
-
-        public override string GetBeeTargetName()
-        {
-            return "asmjs";
-        }
+        public override string DisplayName => "Web (AsmJS)";
+        public override string BeeTargetName => "asmjs";
     }
 
     class WasmBuildTarget : WebBuildTarget
     {
-        public override string GetDisplayName()
-        {
-            return GetPlatformName() + " (Wasm)";
-        }
-
-        public override string GetBeeTargetName()
-        {
-            return "wasm";
-        }
+        public override string DisplayName => "Web (Wasm)";
+        public override string BeeTargetName => "wasm";
     }
 }
