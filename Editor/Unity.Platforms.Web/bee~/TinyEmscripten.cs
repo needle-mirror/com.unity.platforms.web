@@ -4,7 +4,6 @@ using Bee.NativeProgramSupport.Building;
 using Bee.Stevedore;
 using Bee.Toolchain.Emscripten;
 using Bee.Tools;
-using Newtonsoft.Json.Linq;
 using NiceIO;
 using Unity.BuildSystem.NativeProgramSupport;
 using Unity.BuildTools;
@@ -16,14 +15,6 @@ internal static class TinyEmscripten
     public static ToolChain ToolChain_Wasm { get; } = MakeEmscripten(new WasmArchitecture());
 
     public static NPath NodeExe;
-
-    private static JObject BuildSettingsContent { get; } = ParseBuildSettingsFile();
-
-    private static JObject ParseBuildSettingsFile()
-    {
-        var buildSettingsFile = new NPath("buildsettings.json");
-        return buildSettingsFile.Exists() ? JObject.Parse(buildSettingsFile.MakeAbsolute().ReadAllText()) : null;
-    }
 
     public static EmscriptenToolchain MakeEmscripten(EmscriptenArchitecture arch)
     {
@@ -166,16 +157,6 @@ internal static class TinyEmscripten
             linkflags["ASSERTIONS"] = "0";
             linkflags["AGGRESSIVE_VARIABLE_ELIMINATION"] = "1";
             linkflags["ELIMINATE_DUPLICATE_FUNCTIONS"] = "1";
-        }
-
-        if (BuildSettingsContent != null &&
-            BuildSettingsContent.TryGetValue("emscriptenLinkSettings", out var emscriptenLinkSettingsToken)
-            && emscriptenLinkSettingsToken is JObject emscriptenLinkSettings)
-        {
-            foreach (var setting in emscriptenLinkSettings)
-            {
-                linkflags[setting.Key] = setting.Value.Value<string>();
-            }
         }
 
         e = e.WithEmscriptenSettings(linkflags);
