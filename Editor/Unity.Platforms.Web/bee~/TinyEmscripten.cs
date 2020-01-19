@@ -95,6 +95,12 @@ internal static class TinyEmscripten
                 backendRegistrables: new[] {emscripten, llvm, node});
         }
 
+		// All Emsdk components are already pre-setup, so no need to verify the environment.
+		// This avoids issues reported in https://github.com/emscripten-core/emscripten/issues/5042 
+		// (macOS Java check dialog popping up and slight slowdown in compiler invocation times)
+        if (Environment.GetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK") == null)
+			Environment.SetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK", "1");
+
         if (sdk == null)
             return null;
 
