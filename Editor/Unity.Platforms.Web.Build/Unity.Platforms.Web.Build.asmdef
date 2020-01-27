@@ -1,8 +1,8 @@
 {
     "name": "Unity.Platforms.Web.Build",
     "references": [
-        "Unity.Platforms.Build",
-        "Unity.Platforms.Build.DotsRuntime",
+        "Unity.Build",
+        "Unity.Build.DotsRuntime",
         "Unity.Properties"
     ],
     "includePlatforms": [

@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
-using Unity.Platforms.Build.DotsRuntime;
+using Unity.Build.DotsRuntime;
 using Unity.Properties;
 
 namespace Unity.Platforms.Web.Build
