@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Added support for any emcc command line argument
-- Updated `com.unity.platforms` package version to `0.2.1-preview.4`.
+- Updated `com.unity.platforms` package version to `0.2.1-preview.5`.
+- Add a UsesIL2CPP property to BuildTarget
 
 ## [0.2.0-preview.1] - 2020-01-17
 

@@ -16,11 +16,17 @@ internal static class TinyEmscripten
 
     public static NPath NodeExe;
 
+    // If this boolean is set to true, the new upstream Wasm backend is used for Wasm codegen.
+    // If false, the older Emscripten "fastcomp" backend will be used.
+    // This option is provided for a transitional period to enable flipping between the two backends for
+    // profiling and debugging purposes.
+    public static bool UseWasmBackend => false;
+
     public static EmscriptenToolchain MakeEmscripten(EmscriptenArchitecture arch)
     {
-        var emscripten = new StevedoreArtifact("emscripten");
-        var emscriptenVersion = new Version(1, 38, 28);
-        var emscriptenRoot = emscripten.Path.Combine("emscripten-nightly-1.38.28-2019_04_05_07_52");
+        var emscripten = new StevedoreArtifact(HostPlatform.IsWindows ? "emscripten-win" : "emscripten-unix");
+        var emscriptenVersion = new Version(1, 39, 8);
+        var emscriptenRoot = emscripten.Path;
 
         EmscriptenSdk sdk = null;
 
@@ -44,7 +50,7 @@ internal static class TinyEmscripten
 
         if (HostPlatform.IsWindows)
         {
-            var llvm = new StevedoreArtifact("emscripten-llvm-win-x64");
+            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-win-x64" : "emscripten-fc-llvm-win-x64");
 
             var python = new StevedoreArtifact("winpython2-x64");
             var node = new StevedoreArtifact("node-win-x64");
@@ -52,7 +58,7 @@ internal static class TinyEmscripten
 
             sdk = new EmscriptenSdk(
                 emscriptenRoot,
-                llvmRoot: llvm.Path.Combine("emscripten-llvm-e1.38.28-2019_04_05_07_52"),
+                llvmRoot: llvm.Path,
                 pythonExe: python.Path.Combine("WinPython-64bit-2.7.13.1Zero/python-2.7.13.amd64/python.exe"),
                 nodeExe: NodeExe,
                 architecture: arch,
@@ -63,13 +69,13 @@ internal static class TinyEmscripten
 
         if (HostPlatform.IsLinux)
         {
-            var llvm = new StevedoreArtifact("emscripten-llvm-linux-x64");
+            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-linux" : "emscripten-fc-llvm-linux-x64");
             var node = new StevedoreArtifact("node-linux-x64");
             NodeExe = node.Path.Combine("bin/node");
 
             sdk = new EmscriptenSdk(
                 emscriptenRoot,
-                llvmRoot: llvm.Path.Combine("emscripten-llvm-e1.38.28-2019_03_07_23_26"),
+                llvmRoot: llvm.Path,
                 pythonExe: "/usr/bin/python2",
                 nodeExe: NodeExe,
                 architecture: arch,
@@ -80,13 +86,13 @@ internal static class TinyEmscripten
 
         if (HostPlatform.IsOSX)
         {
-            var llvm = new StevedoreArtifact("emscripten-llvm-mac-x64");
+            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-mac-x64" : "emscripten-fc-llvm-mac-x64");
             var node = new StevedoreArtifact("node-mac-x64");
             NodeExe = node.Path.Combine("bin/node");
 
             sdk = new EmscriptenSdk(
                 emscriptenRoot: emscriptenRoot,
-                llvmRoot: llvm.Path.Combine("emscripten-llvm-e1.38.28-2019_04_05_07_52"),
+                llvmRoot: llvm.Path,
                 pythonExe: "/usr/bin/python",
                 nodeExe: NodeExe,
                 architecture: arch,
@@ -95,11 +101,11 @@ internal static class TinyEmscripten
                 backendRegistrables: new[] {emscripten, llvm, node});
         }
 
-		// All Emsdk components are already pre-setup, so no need to verify the environment.
-		// This avoids issues reported in https://github.com/emscripten-core/emscripten/issues/5042 
-		// (macOS Java check dialog popping up and slight slowdown in compiler invocation times)
+        // All Emsdk components are already pre-setup, so no need to verify the environment.
+        // This avoids issues reported in https://github.com/emscripten-core/emscripten/issues/5042 
+        // (macOS Java check dialog popping up and slight slowdown in compiler invocation times)
         if (Environment.GetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK") == null)
-			Environment.SetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK", "1");
+            Environment.SetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK", "1");
 
         if (sdk == null)
             return null;
@@ -138,10 +144,6 @@ internal static class TinyEmscripten
             // By default the musl C runtime used by Emscripten is POSIX errno aware. We do not care about
             // errno, so opt out from errno management to save a tiny bit of performance and code size.
             {"SUPPORT_ERRNO", "0"},
-            // Safari does not support WebAssembly.instantiateStreaming(), so revert to the older
-            // WebAssembly.instantiate() API. This has the drawback that WebAssembly compilation will not
-            // occur while downloading the .wasm file, but enables Safari compatibility.
-            {"STREAMING_WASM_COMPILATION", "0"}
         };
 
         if (enableManagedDebugger)
@@ -150,7 +152,11 @@ internal static class TinyEmscripten
         if (e.Toolchain.Architecture is AsmJsArchitecture)
         {
             linkflags["LEGACY_VM_SUPPORT"] = "1";
-            e = e.WithSeparateAsm(true);
+            // In old fastcomp backend, we can separate the unreadable .asm.js content to its own .asm.js file.
+            // In new LLVM backend, it is currently always separated if -s WASM=2 is set, or embedded inline
+            // if -s WASM=0 is set, so this option does not apply there.
+            if (!UseWasmBackend)
+                e = e.WithSeparateAsm(true);
         }
 
         if (variation == "debug" || variation == "develop")
@@ -162,7 +168,8 @@ internal static class TinyEmscripten
         {
             linkflags["ASSERTIONS"] = "0";
             linkflags["AGGRESSIVE_VARIABLE_ELIMINATION"] = "1";
-            linkflags["ELIMINATE_DUPLICATE_FUNCTIONS"] = "1";
+            if (!UseWasmBackend) // This optimization pass only exists for the old fastcomp backend.
+                linkflags["ELIMINATE_DUPLICATE_FUNCTIONS"] = "1";
         }
 
         e = e.WithEmscriptenSettings(linkflags);
@@ -194,11 +201,9 @@ internal static class TinyEmscripten
 
         e = e.WithMinimalRuntime(EmscriptenMinimalRuntimeMode.EnableDangerouslyAggressive);
 
-        // Bee is not yet aware of the new --closure-externs (and --closure-annotations) linker flags, so add them using the generic
-        // escape hatch hook.
         e = e.WithCustomFlags_workaround(new[]
         {
-            "--closure-externs", BuildProgram.BeeRoot.Combine("closure_externs.js").ToString().QuoteForProcessStart()
+            "--closure-args", ("--externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString()).QuoteForProcessStart()
         });
 
         // TODO: Remove this line once Bee fix is in to support SystemLibrary() objects on web builds. Then restore

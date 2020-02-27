@@ -7,6 +7,7 @@ namespace Unity.Platforms.Web
         public override bool CanBuild => true;
         public override string UnityPlatformName => "WebGL";
         public override string ExecutableExtension => ".html";
+        public override bool UsesIL2CPP => true;
 
         public override bool Run(FileInfo buildTarget)
         {
