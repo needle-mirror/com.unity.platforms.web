@@ -50,7 +50,7 @@ internal static class TinyEmscripten
 
         if (HostPlatform.IsWindows)
         {
-            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-win-x64" : "emscripten-fc-llvm-win-x64");
+            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-win" : "emscripten-fc-llvm-win");
 
             var python = new StevedoreArtifact("winpython2-x64");
             var node = new StevedoreArtifact("node-win-x64");
@@ -69,7 +69,7 @@ internal static class TinyEmscripten
 
         if (HostPlatform.IsLinux)
         {
-            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-linux" : "emscripten-fc-llvm-linux-x64");
+            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-linux" : "emscripten-fc-llvm-linux");
             var node = new StevedoreArtifact("node-linux-x64");
             NodeExe = node.Path.Combine("bin/node");
 
@@ -86,7 +86,7 @@ internal static class TinyEmscripten
 
         if (HostPlatform.IsOSX)
         {
-            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-mac-x64" : "emscripten-fc-llvm-mac-x64");
+            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-mac" : "emscripten-fc-llvm-mac");
             var node = new StevedoreArtifact("node-mac-x64");
             NodeExe = node.Path.Combine("bin/node");
 
