@@ -144,6 +144,11 @@ internal static class TinyEmscripten
             // By default the musl C runtime used by Emscripten is POSIX errno aware. We do not care about
             // errno, so opt out from errno management to save a tiny bit of performance and code size.
             {"SUPPORT_ERRNO", "0"},
+            // Remove support for OES_texture_half_float and OES_texture_half_float_linear extensions if
+            // they are broken. See https://bugs.webkit.org/show_bug.cgi?id=183321,
+            // https://bugs.webkit.org/show_bug.cgi?id=169999,
+            // https://stackoverflow.com/questions/54248633/cannot-create-half-float-oes-texture-from-uint16array-on-ipad
+            {"GL_DISABLE_HALF_FLOAT_EXTENSION_IF_BROKEN", "1"}
         };
 
         if (enableManagedDebugger)

@@ -43,7 +43,7 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
     public override NativeProgramFormat CustomizeExecutableForSettings(FriendlyJObject settings)
     {
         return GetExecutableFormatForConfig(DotsConfigs.DotsConfigForSettings(settings, out _),
-                settings.GetBool("EnableManagedDebugger"))
+                DotsConfigs.ManagedDebuggingForSettings(settings))
             .WithLinkerSetting<EmscriptenDynamicLinker>(e =>
                 e.WithCustomFlags_workaround(new[] {settings.GetString("EmscriptenCmdLine")})
                 );
