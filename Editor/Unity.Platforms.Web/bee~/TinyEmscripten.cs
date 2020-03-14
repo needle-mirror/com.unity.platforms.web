@@ -137,10 +137,6 @@ internal static class TinyEmscripten
             // together into one, and that saves more code size. Unfortunately grouping constructors is
             // not possible if EVAL_CTORS is used, so disable EVAL_CTORS to enable grouping.
             {"EVAL_CTORS", "0"},
-            // We don't want malloc() failures to trigger program exit and abort handling, but instead behave
-            // like C runtimes do, and make malloc() return null. This saves code size and lets our code
-            // handle oom failures.
-            {"ABORTING_MALLOC", "0"},
             // By default the musl C runtime used by Emscripten is POSIX errno aware. We do not care about
             // errno, so opt out from errno management to save a tiny bit of performance and code size.
             {"SUPPORT_ERRNO", "0"},

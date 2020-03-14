@@ -3,7 +3,8 @@
     "references": [
         "Unity.Build",
         "Unity.Build.DotsRuntime",
-        "Unity.Properties"
+        "Unity.Properties",
+        "Unity.Serialization"
     ],
     "includePlatforms": [
         "Editor"
