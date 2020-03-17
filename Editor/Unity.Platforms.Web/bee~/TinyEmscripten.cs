@@ -20,7 +20,7 @@ internal static class TinyEmscripten
     // If false, the older Emscripten "fastcomp" backend will be used.
     // This option is provided for a transitional period to enable flipping between the two backends for
     // profiling and debugging purposes.
-    public static bool UseWasmBackend => true;
+    public static bool UseWasmBackend => false;
 
     public static EmscriptenToolchain MakeEmscripten(EmscriptenArchitecture arch)
     {
@@ -194,7 +194,7 @@ internal static class TinyEmscripten
                 e = e.WithDebugLevel("0");
                 e = e.WithOptLevel("z");
                 e = e.WithLinkTimeOptLevel(3);
-                e = e.WithEmitSymbolMap(false);
+                e = e.WithEmitSymbolMap(!UseWasmBackend); // TODO: wasm backend is not generating symbol maps properly
                 break;
             default:
                 throw new ArgumentException();
