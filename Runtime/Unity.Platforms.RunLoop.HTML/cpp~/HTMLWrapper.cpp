@@ -4,7 +4,6 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #include <stdio.h>
-#include <string>
 
 #include "il2cpp-config.h"
 #include "gc/GarbageCollector.h"
@@ -53,18 +52,4 @@ rafcallbackinit_html(bool (*func)())
     // This line is never reached, the throw above throws a JS statement that skips over rest of the code.
     return true;
 }
-
-#if UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
-
-DOTS_EXPORT(void)
-ShowDebuggerAttachDialog(const char* message)
-{
-    std::string jsAlert = "alert('";
-    jsAlert += message;
-    jsAlert += "');";
-    emscripten_run_script(jsAlert.c_str());
-}
-
-#endif // UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
-
 #endif

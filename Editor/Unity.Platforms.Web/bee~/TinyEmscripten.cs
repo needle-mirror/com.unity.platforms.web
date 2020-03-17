@@ -20,7 +20,7 @@ internal static class TinyEmscripten
     // If false, the older Emscripten "fastcomp" backend will be used.
     // This option is provided for a transitional period to enable flipping between the two backends for
     // profiling and debugging purposes.
-    public static bool UseWasmBackend => true;
+    public static bool UseWasmBackend => false;
 
     public static EmscriptenToolchain MakeEmscripten(EmscriptenArchitecture arch)
     {
@@ -137,10 +137,6 @@ internal static class TinyEmscripten
             // together into one, and that saves more code size. Unfortunately grouping constructors is
             // not possible if EVAL_CTORS is used, so disable EVAL_CTORS to enable grouping.
             {"EVAL_CTORS", "0"},
-            // We don't want malloc() failures to trigger program exit and abort handling, but instead behave
-            // like C runtimes do, and make malloc() return null. This saves code size and lets our code
-            // handle oom failures.
-            {"ABORTING_MALLOC", "0"},
             // By default the musl C runtime used by Emscripten is POSIX errno aware. We do not care about
             // errno, so opt out from errno management to save a tiny bit of performance and code size.
             {"SUPPORT_ERRNO", "0"},
@@ -198,7 +194,7 @@ internal static class TinyEmscripten
                 e = e.WithDebugLevel("0");
                 e = e.WithOptLevel("z");
                 e = e.WithLinkTimeOptLevel(3);
-                e = e.WithEmitSymbolMap(false);
+                e = e.WithEmitSymbolMap(!UseWasmBackend); // TODO: wasm backend is not generating symbol maps properly
                 break;
             default:
                 throw new ArgumentException();
