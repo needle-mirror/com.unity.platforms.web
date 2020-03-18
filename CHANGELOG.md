@@ -4,12 +4,15 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.2.1] - 2020-02-25
+## [0.2.1] - 2020-03-18
 
 ### Added
 - Added support for any emcc command line argument
 - Updated `com.unity.platforms` package version to `0.2.1-preview.8`.
 - Add a UsesIL2CPP property to BuildTarget
+
+### Changed
+- Debug and develop builds now use `ASSERTIONS=1` instead of `ASSERTIONS=2` for web builds. `ASSERTIONS=2` is too heavy-weight and can prevent most builds from being parsed by the browser.
 
 ## [0.2.0-preview.1] - 2020-01-17
 
