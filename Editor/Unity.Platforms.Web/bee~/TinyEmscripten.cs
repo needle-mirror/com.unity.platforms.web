@@ -162,7 +162,7 @@ internal static class TinyEmscripten
 
         if (variation == "debug" || variation == "develop")
         {
-            linkflags["ASSERTIONS"] = "2";
+            linkflags["ASSERTIONS"] = "1";
             linkflags["DEMANGLE_SUPPORT"] = "1";
         }
         else
