@@ -194,7 +194,7 @@ internal static class TinyEmscripten
                 e = e.WithDebugLevel("0");
                 e = e.WithOptLevel("z");
                 e = e.WithLinkTimeOptLevel(3);
-                e = e.WithEmitSymbolMap(!UseWasmBackend); // TODO: wasm backend is not generating symbol maps properly
+                e = e.WithEmitSymbolMap(false);
                 break;
             default:
                 throw new ArgumentException();

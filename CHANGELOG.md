@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.2.2] - 2020-03-14
 
 ### Changed
-- Updated `com.unity.platforms` package version to `0.2.2-preview.4`.
+- Updated `com.unity.platforms` package version to `0.2.2-preview.5`.
 - Debug and develop builds now use `ASSERTIONS=1` instead of `ASSERTIONS=2` for web builds. `ASSERTIONS=2` is too heavy-weight and can prevent most builds from being parsed by the browser.
 
 ## [0.2.1] - 2020-02-25
