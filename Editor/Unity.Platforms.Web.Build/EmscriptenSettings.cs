@@ -1,7 +1,7 @@
-using Newtonsoft.Json.Linq;
 using Unity.Build.DotsRuntime;
 using Unity.Properties;
 using Unity.Serialization;
+using Unity.Serialization.Json;
 
 namespace Unity.Platforms.Web.Build
 {
@@ -10,9 +10,9 @@ namespace Unity.Platforms.Web.Build
     {
         [CreateProperty] public string EmccCmdLine = "";
 
-        public void Modify(JObject settingsJObject)
+        public void Modify(JsonObject jsonObject)
         {
-            settingsJObject["EmscriptenCmdLine"] = EmccCmdLine;
+            jsonObject["EmscriptenCmdLine"] = EmccCmdLine;
         }
     }
 }
