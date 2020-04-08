@@ -43,4 +43,5 @@ namespace Unity.Platforms.Web
         public override string DisplayName => "Web (Wasm)";
         public override string BeeTargetName => "wasm";
     }
+
 }

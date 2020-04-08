@@ -15,4 +15,5 @@ namespace Unity.Platforms.Web.Build
             jsonObject["EmscriptenCmdLine"] = EmccCmdLine;
         }
     }
+
 }
