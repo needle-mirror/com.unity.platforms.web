@@ -20,7 +20,11 @@ internal static class TinyEmscripten
     // If false, the older Emscripten "fastcomp" backend will be used.
     // This option is provided for a transitional period to enable flipping between the two backends for
     // profiling and debugging purposes.
-    public static bool UseWasmBackend => false;
+    public static bool UseWasmBackend => true;
+
+    // If set to true, Closure compiler minification is enabled for the code in release builds. If false,
+    // weaker UglifyJS based minification is used instead. TODO: enable this by default.
+    public static bool EnableClosureCompiler => false;
 
     public static EmscriptenToolchain MakeEmscripten(EmscriptenArchitecture arch)
     {
@@ -35,20 +39,19 @@ internal static class TinyEmscripten
             Console.WriteLine("Using pre-set environment EMSDK=" + Environment.GetEnvironmentVariable("EMSDK") +
                               ". This should only be used for local development. Unset EMSDK env. variable to use tagged Emscripten version from Stevedore.");
             NodeExe = Environment.GetEnvironmentVariable("EMSDK_NODE");
-            return new EmscriptenToolchain(new EmscriptenSdk(
+            sdk = new EmscriptenSdk(
                 Environment.GetEnvironmentVariable("EMSCRIPTEN"),
                 llvmRoot: Environment.GetEnvironmentVariable("LLVM_ROOT"),
                 pythonExe: Environment.GetEnvironmentVariable("EMSDK_PYTHON"),
-                nodeExe: Environment.GetEnvironmentVariable("EMSDK_NODE"),
+                nodeExe: NodeExe,
                 architecture: arch,
                 // Use a dummy/hardcoded version string to represent Emscripten "incoming" branch (it should be always considered
                 // a "dirty" branch that does not correspond to any tagged release)
                 version: new Version(9, 9, 9),
                 isDownloadable: false
-            ));
+            );
         }
-
-        if (HostPlatform.IsWindows)
+        else if (HostPlatform.IsWindows)
         {
             var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-win" : "emscripten-fc-llvm-win");
 
@@ -66,8 +69,7 @@ internal static class TinyEmscripten
                 isDownloadable: true,
                 backendRegistrables: new[] {emscripten, llvm, python, node});
         }
-
-        if (HostPlatform.IsLinux)
+        else if (HostPlatform.IsLinux)
         {
             var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-linux" : "emscripten-fc-llvm-linux");
             var node = new StevedoreArtifact("node-linux-x64");
@@ -83,8 +85,7 @@ internal static class TinyEmscripten
                 isDownloadable: true,
                 backendRegistrables: new[] {emscripten, llvm, node});
         }
-
-        if (HostPlatform.IsOSX)
+        else if (HostPlatform.IsOSX)
         {
             var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-mac" : "emscripten-fc-llvm-mac");
             var node = new StevedoreArtifact("node-mac-x64");
@@ -101,14 +102,16 @@ internal static class TinyEmscripten
                 backendRegistrables: new[] {emscripten, llvm, node});
         }
 
+        if (sdk == null)
+            return null;
+
         // All Emsdk components are already pre-setup, so no need to verify the environment.
         // This avoids issues reported in https://github.com/emscripten-core/emscripten/issues/5042 
         // (macOS Java check dialog popping up and slight slowdown in compiler invocation times)
-        if (Environment.GetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK") == null)
-            Environment.SetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK", "1");
-
-        if (sdk == null)
-            return null;
+        // BUG: this does not actually work. Emcc is not a child of the Bee build process.
+        // Switch to use something else.
+//        if (Environment.GetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK") == null)
+//            Environment.SetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK", "1");
 
         return new EmscriptenToolchain(sdk);
     }
@@ -144,7 +147,7 @@ internal static class TinyEmscripten
             // they are broken. See https://bugs.webkit.org/show_bug.cgi?id=183321,
             // https://bugs.webkit.org/show_bug.cgi?id=169999,
             // https://stackoverflow.com/questions/54248633/cannot-create-half-float-oes-texture-from-uint16array-on-ipad
-            {"GL_DISABLE_HALF_FLOAT_EXTENSION_IF_BROKEN", "1"}
+            {"GL_DISABLE_HALF_FLOAT_EXTENSION_IF_BROKEN", "1"},
         };
 
         if (enableManagedDebugger)
@@ -179,22 +182,25 @@ internal static class TinyEmscripten
         switch (variation)
         {
             case "debug":
-                e = e.WithDebugLevel("3");
-                e = e.WithOptLevel("0");
+                e = e.WithDebugLevel("3"); // Preserve JS whitespace, function names, and LLVM debug info
+                e = e.WithOptLevel("1"); // -O0 generates too much code from IL2CPP, must apply optimizations.
                 e = e.WithLinkTimeOptLevel(0);
-                e = e.WithEmitSymbolMap(true);
+                e = e.WithEmitSymbolMap(false); // At -g3 no name minification occurs -> no symbols present
+                e = e.WithCustomFlags_workaround(new[] {
+                    "-fno-inline" // Disable inlining in debug builds for easier stepping through code.
+                });
                 break;
             case "develop":
-                e = e.WithDebugLevel("2");
+                e = e.WithDebugLevel("2"); // Preserve JS whitespace and function names
                 e = e.WithOptLevel("1");
                 e = e.WithLinkTimeOptLevel(0);
-                e = e.WithEmitSymbolMap(false); 
+                e = e.WithEmitSymbolMap(false); // At -g2 no name minification occurs -> no symbols present
                 break;
             case "release":
                 e = e.WithDebugLevel("0");
                 e = e.WithOptLevel("z");
                 e = e.WithLinkTimeOptLevel(3);
-                e = e.WithEmitSymbolMap(false);
+                e = e.WithEmitSymbolMap(false); // TODO: re-enable this after Emscripten update
                 break;
             default:
                 throw new ArgumentException();
@@ -202,10 +208,14 @@ internal static class TinyEmscripten
 
         e = e.WithMinimalRuntime(EmscriptenMinimalRuntimeMode.EnableDangerouslyAggressive);
 
-        e = e.WithCustomFlags_workaround(new[]
+        if (EnableClosureCompiler)
         {
-            "--closure-args", ("--externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString()).QuoteForProcessStart()
-        });
+            e = e.WithCustomFlags_workaround(new[]
+            {
+                "--closure-args", ("--platform native,javascript --externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString()).QuoteForProcessStart(),
+                "--closure", "1"
+            });
+        }
 
         // TODO: Remove this line once Bee fix is in to support SystemLibrary() objects on web builds. Then restore
         // the line Libraries.Add(c => c.ToolChain.Platform is WebGLPlatform, new SystemLibrary("GL")); at the top of this file
@@ -225,6 +235,15 @@ internal static class TinyEmscripten
         // Using custom flags as there appears to be no standard way to set the option in bee and passing the flags to the linker settings
         // normally will cause bee to error
         e = e.WithCustomFlags_workaround(new[] { "-s FETCH=1 -s FETCH_SUPPORT_INDEXEDDB=0" });
+
+        if (UseWasmBackend && e.Toolchain.Architecture is AsmJsArchitecture)
+        {
+            // Work around Binaryen multithreading bug: using more than 1 core is slower than using a single core!
+            // TODO: Remove this after Emscripten update, where the issue has been fixed.
+            // BUG: this does not actually work. Emcc is not a child of the Bee build process.
+            // Switch to use something else.
+//            Environment.SetEnvironmentVariable("BINARYEN_CORES", "1");
+        }
 
         return e;
     }
