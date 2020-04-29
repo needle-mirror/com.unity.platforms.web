@@ -24,14 +24,21 @@ namespace Unity.Platforms.Web
             }
             
             string root = Path.GetDirectoryName(EditorApplication.applicationPath);
-            root = Path.Combine(root, "Data");
+            string data = Path.Combine(root, "Data");
+
+#if UNITY_EDITOR_OSX
+            string monoPath = Path.Combine(root, "Unity.app", "Contents", "MonoBleedingEdge", "bin", "mono");
+            string nodePath = Path.Combine(root, "Unity.app", "Contents", "Tools", "nodejs", "bin", "node");
             string rootWeb = Path.Combine(root, "PlaybackEngines", "WebGLSupport");
-                        
+#else
+            string monoPath = "\"" + Path.Combine(root, "MonoBleedingEdge", "bin", "mono.exe") + "\"";
+            string nodePath = "\"" + Path.Combine(root, "Tools", "nodejs", "node.exe") + "\"";
+            string rootWeb = Path.Combine(data, "PlaybackEngines", "WebGLSupport");
+#endif
+
             if (!Directory.Exists(rootWeb))
                 return ReportSuccessWithWarning(buildTarget.FullName, "WebGL module not installed! Unable to run web build.");
 
-            string monoPath = "\"" + Path.Combine(root, "MonoBleedingEdge", "bin", "mono.exe") + "\"";
-            string nodePath = "\"" + Path.Combine(root, "Tools", "nodejs", "node.exe") + "\"";
             string serverArgs = "\"" + Path.Combine(rootWeb, "BuildTools", "SimpleWebServer.exe") + "\" . 8084";
             string websockifyArgs = "\"" + websockifyPath + "\" 54998 localhost:34999";
             
