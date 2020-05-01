@@ -24,16 +24,16 @@ namespace Unity.Platforms.Web
             }
             
             string root = Path.GetDirectoryName(EditorApplication.applicationPath);
-            string data = Path.Combine(root, "Data");
 
 #if UNITY_EDITOR_OSX
             string monoPath = Path.Combine(root, "Unity.app", "Contents", "MonoBleedingEdge", "bin", "mono");
             string nodePath = Path.Combine(root, "Unity.app", "Contents", "Tools", "nodejs", "bin", "node");
             string rootWeb = Path.Combine(root, "PlaybackEngines", "WebGLSupport");
 #else
+            root = Path.Combine(root, "Data");
             string monoPath = "\"" + Path.Combine(root, "MonoBleedingEdge", "bin", "mono.exe") + "\"";
             string nodePath = "\"" + Path.Combine(root, "Tools", "nodejs", "node.exe") + "\"";
-            string rootWeb = Path.Combine(data, "PlaybackEngines", "WebGLSupport");
+            string rootWeb = Path.Combine(root, "PlaybackEngines", "WebGLSupport");
 #endif
 
             if (!Directory.Exists(rootWeb))

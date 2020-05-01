@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Updated `com.unity.platforms` package dependency.
 - Build pipeline assets have been replaced by class based build pipelines.
+- Fix the osx paths for running the web server on "Build and Run"
 
 ## [0.2.2] - 2020-03-23
 
