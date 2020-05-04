@@ -12,8 +12,18 @@ namespace Unity.Platforms.Web
         public override string ExecutableExtension => ".html";
         public override bool UsesIL2CPP => true;
 
+        private static bool quitCallbackAdded = false;
+        private static Process serverProcess;
+        private static Process wsProcess;
+
         public override bool Run(FileInfo buildTarget)
         {
+            if (!quitCallbackAdded)
+            {
+                EditorApplication.quitting += OnEditorQuit;
+                quitCallbackAdded = true;
+            }
+            
             var guids = AssetDatabase.FindAssets("websockify");
             string websockifyPath = "";
             foreach (var g in guids)
@@ -52,7 +62,12 @@ namespace Unity.Platforms.Web
             serverStartInfo.CreateNoWindow = true;
             serverStartInfo.UseShellExecute = false;
 
-            var serverProcess = new Process();
+            if (serverProcess != null)
+            {
+                serverProcess.Kill();
+                serverProcess.WaitForExit();
+            }
+            serverProcess = new Process();
             serverProcess.StartInfo = serverStartInfo;
             var success = serverProcess.Start();
             if (!success)
@@ -65,7 +80,12 @@ namespace Unity.Platforms.Web
             wsStartInfo.CreateNoWindow = true;
             wsStartInfo.UseShellExecute = false;
 
-            var wsProcess = new Process();
+            if (wsProcess != null)
+            {
+                wsProcess.Kill();
+                wsProcess.WaitForExit();
+            }
+            wsProcess = new Process();
             wsProcess.StartInfo = wsStartInfo;
             success = wsProcess.Start();
             if (!success)
@@ -91,6 +111,23 @@ namespace Unity.Platforms.Web
             EditorUtility.RevealInFinder(buildPath);
             UnityEngine.Debug.LogWarning("WebGL module not installed! Unable to run web build");
             return true;
+        }
+
+        private static void OnEditorQuit()
+        {
+            if (serverProcess != null)
+            {
+                serverProcess.Kill();
+                serverProcess.WaitForExit();
+                serverProcess = null;
+            }
+            
+            if (wsProcess != null)
+            {
+                wsProcess.Kill();
+                wsProcess.WaitForExit();
+                wsProcess = null;
+            }
         }
     }
 
