@@ -26,10 +26,20 @@ internal static class TinyEmscripten
     // weaker UglifyJS based minification is used instead. TODO: enable this by default.
     public static bool EnableClosureCompiler => false;
 
+    // Returns the naming scheme for OS component for Emscripten packages hosted on artifactory
+    public static string EmscriptenPackageOSName()
+    {
+        if (HostPlatform.IsWindows) return "win";
+        if (HostPlatform.IsLinux) return "linux";
+        if (HostPlatform.IsOSX) return "mac";
+        throw new Exception("Emscripten build support only works from Windows, Linux or macOS hosts!");
+    }
+
     public static EmscriptenToolchain MakeEmscripten(EmscriptenArchitecture arch)
     {
-        var emscripten = new StevedoreArtifact(HostPlatform.IsWindows ? "emscripten-win" : "emscripten-unix");
-        var emscriptenVersion = new Version(1, 39, 8);
+        var emscripten = new StevedoreArtifact("emscripten-" + EmscriptenPackageOSName());
+        var llvm = new StevedoreArtifact("emscripten-" + (UseWasmBackend ? "wasm" : "fc") + "-llvm-" + EmscriptenPackageOSName());
+        var emscriptenVersion = new Version(1, 39, 15);
         var emscriptenRoot = emscripten.Path;
 
         EmscriptenSdk sdk = null;
@@ -53,8 +63,6 @@ internal static class TinyEmscripten
         }
         else if (HostPlatform.IsWindows)
         {
-            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-win" : "emscripten-fc-llvm-win");
-
             var python = new StevedoreArtifact("winpython2-x64");
             var node = new StevedoreArtifact("node-win-x64");
             NodeExe = node.Path.Combine("node.exe");
@@ -71,7 +79,6 @@ internal static class TinyEmscripten
         }
         else if (HostPlatform.IsLinux)
         {
-            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-linux" : "emscripten-fc-llvm-linux");
             var node = new StevedoreArtifact("node-linux-x64");
             NodeExe = node.Path.Combine("bin/node");
 
@@ -87,7 +94,6 @@ internal static class TinyEmscripten
         }
         else if (HostPlatform.IsOSX)
         {
-            var llvm = new StevedoreArtifact(UseWasmBackend ? "emscripten-wasm-llvm-mac" : "emscripten-fc-llvm-mac");
             var node = new StevedoreArtifact("node-mac-x64");
             NodeExe = node.Path.Combine("bin/node");
 
