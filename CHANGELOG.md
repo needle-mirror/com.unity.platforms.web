@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed the windows paths for running the web server on "Build and Run"
 - Fixed web build and run for different output paths
 - Fixed web build and run then exit Unity editor
+- Fixed error if build and run tries to kill previous process which is already shutdown
 
 ## [0.2.2] - 2020-03-23
 
