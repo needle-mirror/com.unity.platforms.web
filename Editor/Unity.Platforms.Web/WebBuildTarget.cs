@@ -8,7 +8,7 @@ namespace Unity.Platforms.Web
     public abstract class WebBuildTarget : BuildTarget
     {
         public override bool CanBuild => true;
-        public override string UnityPlatformName => "WebGL";
+        public override string UnityPlatformName => nameof(UnityEditor.BuildTarget.WebGL);
         public override string ExecutableExtension => ".html";
         public override bool UsesIL2CPP => true;
 
@@ -23,7 +23,7 @@ namespace Unity.Platforms.Web
                 EditorApplication.quitting += OnEditorQuit;
                 quitCallbackAdded = true;
             }
-            
+
             var guids = AssetDatabase.FindAssets("websockify");
             string websockifyPath = "";
             foreach (var g in guids)
@@ -32,7 +32,7 @@ namespace Unity.Platforms.Web
                 if (Path.GetFileName(jsPath) == "websockify.js")
                     websockifyPath = Path.GetFullPath(jsPath);
             }
-            
+
             string root = Path.GetDirectoryName(EditorApplication.applicationPath);
 
 #if UNITY_EDITOR_OSX
@@ -51,7 +51,7 @@ namespace Unity.Platforms.Web
 
             string serverArgs = "\"" + Path.Combine(rootWeb, "BuildTools", "SimpleWebServer.exe") + "\" . 8084";
             string websockifyArgs = "\"" + websockifyPath + "\" 54998 localhost:34999";
-            
+
             // Start the server
             // Note that the server included with Unity will run but will not function properly
             // if executed in a .net environment. It must be ran with mono to function properly.
@@ -62,7 +62,7 @@ namespace Unity.Platforms.Web
             serverStartInfo.CreateNoWindow = true;
             serverStartInfo.UseShellExecute = false;
 
-            if (serverProcess != null)
+            if (serverProcess != null && !serverProcess.HasExited)
             {
                 serverProcess.Kill();
                 serverProcess.WaitForExit();
@@ -71,8 +71,11 @@ namespace Unity.Platforms.Web
             serverProcess.StartInfo = serverStartInfo;
             var success = serverProcess.Start();
             if (!success)
+            {
+                serverProcess = null;
                 return ReportSuccessWithWarning(buildTarget.FullName, "Error starting local server. Unable to run web build.");
-            
+            }
+
             // Start the websockify proxy server
             var wsStartInfo = new ProcessStartInfo();
             wsStartInfo.FileName = nodePath;
@@ -80,7 +83,7 @@ namespace Unity.Platforms.Web
             wsStartInfo.CreateNoWindow = true;
             wsStartInfo.UseShellExecute = false;
 
-            if (wsProcess != null)
+            if (wsProcess != null && !wsProcess.HasExited)
             {
                 wsProcess.Kill();
                 wsProcess.WaitForExit();
@@ -89,10 +92,13 @@ namespace Unity.Platforms.Web
             wsProcess.StartInfo = wsStartInfo;
             success = wsProcess.Start();
             if (!success)
+            {
+                wsProcess = null;
                 return ReportSuccessWithWarning(buildTarget.FullName, "Error starting websockify proxy server. Unable to run web build.");
-            
+            }
+
             Application.OpenURL("http://localhost:8084/" + buildTarget.Name);
-            
+
             return true;
         }
 
@@ -105,7 +111,7 @@ namespace Unity.Platforms.Web
                 FullOutput = "Test mode is not supported for web yet"
             };
         }
-        
+
         private bool ReportSuccessWithWarning(string buildPath, string message)
         {
             EditorUtility.RevealInFinder(buildPath);
@@ -115,14 +121,14 @@ namespace Unity.Platforms.Web
 
         private static void OnEditorQuit()
         {
-            if (serverProcess != null)
+            if (serverProcess != null && !serverProcess.HasExited)
             {
                 serverProcess.Kill();
                 serverProcess.WaitForExit();
                 serverProcess = null;
             }
-            
-            if (wsProcess != null)
+
+            if (wsProcess != null && !wsProcess.HasExited)
             {
                 wsProcess.Kill();
                 wsProcess.WaitForExit();

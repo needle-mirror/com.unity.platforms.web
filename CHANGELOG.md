@@ -9,12 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Updated `com.unity.platforms` package dependency.
 
+### Fixed
+- Fixed error if build and run tries to kill previous process which is already shutdown
+
 ## [0.3.1] - 2020-05-04
 
 ### Changed
 - Update platforms packages to 0.3.1
-
-### Changed
 - Updated `com.unity.platforms` package dependency.
 - Build pipeline assets have been replaced by class based build pipelines.
 
