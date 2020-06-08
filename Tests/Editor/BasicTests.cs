@@ -1,11 +1,11 @@
 ﻿using NUnit.Framework;
-using Unity.Platforms.Web;
+using Unity.Build.Web.DotsRuntime;
 
 class BasicTests
 {
-	[Test]
-	public void VerifyCanReferenceWebBuildTarget()
-	{
-		Assert.IsNotNull(typeof(WebBuildTarget));
-	}
+    [Test]
+    public void VerifyCanReferenceWebBuildTarget()
+    {
+        Assert.IsNotNull(typeof(WebBuildTarget));
+    }
 }

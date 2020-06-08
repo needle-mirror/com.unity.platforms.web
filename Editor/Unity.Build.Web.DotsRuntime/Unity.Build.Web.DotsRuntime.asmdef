@@ -1,0 +1,20 @@
+{
+    "name": "Unity.Build.Web.DotsRuntime",
+    "references": [
+        "Unity.Build",
+        "Unity.Build.DotsRuntime",
+        "Unity.Properties",
+        "Unity.Serialization"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
