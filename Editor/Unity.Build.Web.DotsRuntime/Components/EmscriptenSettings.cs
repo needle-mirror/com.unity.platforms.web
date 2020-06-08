@@ -10,10 +10,12 @@ namespace Unity.Build.Web.DotsRuntime
     public class EmscriptenSettings : IDotsRuntimeBuildModifier
     {
         [CreateProperty] public string EmccCmdLine = "";
+        [CreateProperty] public bool SingleFileOutput = false;
 
         public void Modify(JsonObject jsonObject)
         {
             jsonObject["EmscriptenCmdLine"] = EmccCmdLine;
+            jsonObject["SingleFile"] = SingleFileOutput;
         }
     }
 }

@@ -6,6 +6,11 @@ using DotsBuildTargets;
 using Newtonsoft.Json.Linq;
 using Unity.BuildSystem.NativeProgramSupport;
 
+class WebBuildConfig : IPlatformBuildConfig
+{
+    public bool SingleFile = false;
+}
+
 abstract class DotsWebTarget : DotsBuildSystemTarget
 {
     protected abstract bool UseWasm { get; }
@@ -40,13 +45,21 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
         }
     }
 
-    public override NativeProgramFormat CustomizeExecutableForSettings(FriendlyJObject settings)
+    public override DotsRuntimeCSharpProgramConfiguration CustomizeConfigForSettings(DotsRuntimeCSharpProgramConfiguration config, FriendlyJObject settings)
     {
-        return GetExecutableFormatForConfig(DotsConfigs.DotsConfigForSettings(settings, out _),
-                false)
-            .WithLinkerSetting<EmscriptenDynamicLinker>(e =>
-                e.WithCustomFlags_workaround(new[] {settings.GetString("EmscriptenCmdLine")})
-                );
+        var executableFormat = GetExecutableFormatForConfig(DotsConfigs.DotsConfigForSettings(settings, out _), false)
+            .WithLinkerSetting<EmscriptenDynamicLinker>(e => e
+                .WithCustomFlags_workaround(new[] {settings.GetString("EmscriptenCmdLine")})
+                .WithSingleFile(settings.GetBool("SingleFile"))
+            );
+        config.NativeProgramConfiguration = new DotsRuntimeNativeProgramConfiguration(
+            config.NativeProgramConfiguration.CodeGen,
+            config.NativeProgramConfiguration.ToolChain,
+            config.Identifier,
+            config,
+            executableFormat: executableFormat);
+        config.PlatformBuildConfig = new WebBuildConfig { SingleFile = settings.GetBool("SingleFile") };
+        return config;
     }
 }
 
