@@ -154,6 +154,9 @@ internal static class TinyEmscripten
             // https://bugs.webkit.org/show_bug.cgi?id=169999,
             // https://stackoverflow.com/questions/54248633/cannot-create-half-float-oes-texture-from-uint16array-on-ipad
             {"GL_DISABLE_HALF_FLOAT_EXTENSION_IF_BROKEN", "1"},
+            // Use emmalloc_memalign to allocate VM GC memory with BDWGC so that the managed heap
+            // uses the same allcoator as everything else.
+            {"MALLOC", "emmalloc"},
         };
 
         if (enableManagedDebugger)
