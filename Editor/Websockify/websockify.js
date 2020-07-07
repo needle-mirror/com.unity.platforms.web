@@ -5,8 +5,8 @@
 // Licensed under LGPL version 3 (see docs/LICENSE.LGPL-3)
 
 // Known to work with node 0.8.9
-// Requires node modules: ws, optimist and policyfile
-//     npm install ws optimist policyfile
+// Requires node modules: ws and optimist
+//     npm install ws optimist
 
 
 var argv = require('optimist').argv,
@@ -16,7 +16,7 @@ var argv = require('optimist').argv,
     url = require('url'),
     path = require('path'),
     fs = require('fs'),
-    policyfile = require('policyfile'),
+    mime = require('mime-types'),
 
     Buffer = require('buffer').Buffer,
     WebSocketServer = require('ws').Server,
@@ -24,29 +24,41 @@ var argv = require('optimist').argv,
     webServer, wsServer,
     source_host, source_port, target_host, target_port,
     web_path = null;
-    
+
+
 // Handle new WebSocket client
-new_client = function(client) {
+new_client = function(client, req) {
     var clientAddr = client._socket.remoteAddress, log;
-    console.log(client.upgradeReq.url);
+    var start_time = new Date().getTime();
+
+    console.log(req ? req.url : client.upgradeReq.url);
     log = function (msg) {
         console.log(' ' + clientAddr + ': '+ msg);
     };
     log('WebSocket connection');
     log('Version ' + client.protocolVersion + ', subprotocol: ' + client.protocol);
 
+    if (argv.record) {
+      var rs = fs.createWriteStream(argv.record + '/' + new Date().toISOString().replace(/:/g, "_"));
+      rs.write('var VNC_frame_data = [\n');
+    } else {
+      var rs = null;
+    }
+
     var target = net.createConnection(target_port,target_host, function() {
         log('connected to target');
     });
     target.on('data', function(data) {
         //log("sending message: " + data);
-        
+
+        if (rs) {
+          var tdelta = Math.floor(new Date().getTime()) - start_time;
+          var rsdata = '\'{' + tdelta + '{' + decodeBuffer(data) + '\',\n';
+          rs.write(rsdata);
+        }
+
         try {
-            if (client.protocol === 'base64') {
-                client.send(new Buffer(data).toString('base64'));
-            } else {
-                client.send(data,{binary: true});
-            }
+            client.send(data);
         } catch(e) {
             log("Client closed, cleaning up target");
             target.end();
@@ -55,20 +67,29 @@ new_client = function(client) {
     target.on('end', function() {
         log('target disconnected');
         client.close();
+        if (rs) {
+          rs.end('\'EOF\'];\n');
+        }
     });
     target.on('error', function() {
         log('target connection error');
         target.end();
         client.close();
+        if (rs) {
+          rs.end('\'EOF\'];\n');
+        }
     });
 
     client.on('message', function(msg) {
         //log('got message: ' + msg);
-        if (client.protocol === 'base64') {
-            target.write(new Buffer(msg, 'base64'));
-        } else {
-            target.write(msg,'binary');
+
+        if (rs) {
+          var rdelta = Math.floor(new Date().getTime()) - start_time;
+          var rsdata = ('\'}' + rdelta + '}' + decodeBuffer(msg) + '\',\n');
+          rs.write(rsdata);
         }
+
+        target.write(msg);
     });
     client.on('close', function(code, reason) {
         log('WebSocket client disconnected: ' + code + ' [' + reason + ']');
@@ -80,6 +101,28 @@ new_client = function(client) {
     });
 };
 
+function decodeBuffer(buf) {
+  var returnString = '';
+  for (var i = 0; i < buf.length; i++) {
+    if (buf[i] >= 48 && buf[i] <= 90) {
+      returnString += String.fromCharCode(buf[i]);
+    } else if (buf[i] === 95) {
+      returnString += String.fromCharCode(buf[i]);
+    } else if (buf[i] >= 97 && buf[i] <= 122) {
+      returnString += String.fromCharCode(buf[i]);
+    } else {
+      var charToConvert = buf[i].toString(16);
+      if (charToConvert.length === 0) {
+        returnString += '\\x00';
+      } else if (charToConvert.length === 1) {
+        returnString += '\\x0' + charToConvert;
+      } else {
+        returnString += '\\x' + charToConvert;
+      }
+    }
+  }
+  return returnString;
+}
 
 // Send an HTTP error response
 http_error = function (response, code, msg) {
@@ -101,7 +144,7 @@ http_request = function (request, response) {
 
     var uri = url.parse(request.url).pathname
         , filename = path.join(argv.web, uri);
-    
+
     fs.exists(filename, function(exists) {
         if(!exists) {
             return http_error(response, 404, "404 Not Found");
@@ -116,24 +159,18 @@ http_request = function (request, response) {
                 return http_error(response, 500, err);
             }
 
-            response.writeHead(200);
+            var headers = {};
+            var contentType = mime.contentType(path.extname(filename));
+            if (contentType !== false) {
+              headers['Content-Type'] = contentType;
+            }
+
+            response.writeHead(200, headers);
             response.write(file, "binary");
             response.end();
         });
     });
 };
-
-// Select 'binary' or 'base64' subprotocol, preferring 'binary'
-selectProtocol = function(protocols, callback) {
-    if (protocols.indexOf('binary') >= 0) {
-        callback(true, 'binary');
-    } else if (protocols.indexOf('base64') >= 0) {
-        callback(true, 'base64');
-    } else {
-        console.log("Client must support 'binary' or 'base64' protocol");
-        callback(false);
-    }
-}
 
 // parse source and target arguments into parts
 try {
@@ -161,7 +198,7 @@ try {
         throw("illegal port");
     }
 } catch(e) {
-    console.error("websockify.js [--web web_dir] [--cert cert.pem [--key key.pem]] [source_addr:]source_port target_addr:target_port");
+    console.error("websockify.js [--web web_dir] [--cert cert.pem [--key key.pem]] [--record dir] [source_addr:]source_port target_addr:target_port");
     process.exit(2);
 }
 
@@ -183,10 +220,6 @@ if (argv.cert) {
     webServer = http.createServer(http_request);
 }
 webServer.listen(source_port, function() {
-    wsServer = new WebSocketServer({server: webServer,
-                                    handleProtocols: selectProtocol});
+    wsServer = new WebSocketServer({server: webServer});
     wsServer.on('connection', new_client);
 });
-
-// Attach Flash policyfile answer service
-policyfile.createServer().listen(-1, webServer);

@@ -9,6 +9,7 @@ using Unity.BuildSystem.NativeProgramSupport;
 class WebBuildConfig : IPlatformBuildConfig
 {
     public bool SingleFile = false;
+    public bool ExportWebPFallback = false;
 }
 
 abstract class DotsWebTarget : DotsBuildSystemTarget
@@ -58,7 +59,7 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
             config.Identifier,
             config,
             executableFormat: executableFormat);
-        config.PlatformBuildConfig = new WebBuildConfig { SingleFile = settings.GetBool("SingleFile") };
+        config.PlatformBuildConfig = new WebBuildConfig { SingleFile = settings.GetBool("SingleFile"), ExportWebPFallback = settings.GetBool("ExportWebPFallback") };
         return config;
     }
 }
