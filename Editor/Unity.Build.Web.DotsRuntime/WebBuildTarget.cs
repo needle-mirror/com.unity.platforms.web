@@ -26,9 +26,6 @@ namespace Unity.Build.Web.DotsRuntime
                 quitCallbackAdded = true;
             }
 
-
-            PosixSocketBridgeRunner.EnsureRunning();
-
             var guids = AssetDatabase.FindAssets("websockify");
             string websockifyPath = "";
             foreach (var g in guids)
@@ -139,8 +136,6 @@ namespace Unity.Build.Web.DotsRuntime
                 wsProcess.WaitForExit();
                 wsProcess = null;
             }
-
-            PosixSocketBridgeRunner.StopRunning();
         }
     }
 
@@ -148,7 +143,6 @@ namespace Unity.Build.Web.DotsRuntime
     {
         public override string DisplayName => "Web (AsmJS)";
         public override string BeeTargetName => "asmjs";
-        public override bool SupportsManagedDebugging => false;
     }
 
     class WasmBuildTarget : WebBuildTarget

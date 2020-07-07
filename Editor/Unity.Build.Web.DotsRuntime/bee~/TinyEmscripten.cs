@@ -39,7 +39,7 @@ internal static class TinyEmscripten
     {
         var emscripten = new StevedoreArtifact("emscripten-" + EmscriptenPackageOSName());
         var llvm = new StevedoreArtifact("emscripten-" + (UseWasmBackend ? "wasm" : "fc") + "-llvm-" + EmscriptenPackageOSName());
-        var emscriptenVersion = new Version(1, 39, 17);
+        var emscriptenVersion = new Version(1, 39, 15);
         var emscriptenRoot = emscripten.Path;
 
         EmscriptenSdk sdk = null;
@@ -112,7 +112,7 @@ internal static class TinyEmscripten
             return null;
 
         // All Emsdk components are already pre-setup, so no need to verify the environment.
-        // This avoids issues reported in https://github.com/emscripten-core/emscripten/issues/5042
+        // This avoids issues reported in https://github.com/emscripten-core/emscripten/issues/5042 
         // (macOS Java check dialog popping up and slight slowdown in compiler invocation times)
         // BUG: this does not actually work. Emcc is not a child of the Bee build process.
         // Switch to use something else.
@@ -121,33 +121,25 @@ internal static class TinyEmscripten
 
         return new EmscriptenToolchain(sdk);
     }
-
+    
     // Development time configuration: Set to true to generate a HTML5 build that runs in a Web Worker instead of the (default) main browser thread.
-    // If this is enabled, EnableMultithreading should also be true.
     public static bool RunInBackgroundWorker { get; } = false;
-
-    // Development time configuration: Set to true to generate a HTML5 build that enables SharedArrayBuffer support.
-    public static bool EnableMultithreading { get; } = false;
 
     public static EmscriptenDynamicLinker ConfigureEmscriptenLinkerFor(EmscriptenDynamicLinker e,
         string variation, bool enableManagedDebugger)
     {
-        bool runInBackgroundWorker = RunInBackgroundWorker || enableManagedDebugger;
-        bool enableMultithreading = EnableMultithreading || runInBackgroundWorker;
-
         var linkflags = new Dictionary<string, string>
         {
             // Bee defaults to PRECISE_F32=2, which is not an interesting feature for Dots. In Dots asm.js builds, we don't
             // care about single-precision floats, but care more about code size.
             {"PRECISE_F32", "0"},
-            // No virtual filesystem needed, saves code size
+            // No exceptions machinery needed, saves code size
+            {"DISABLE_EXCEPTION_CATCHING", "1"},
+            //// No virtual filesystem needed, saves code size
             {"NO_FILESYSTEM", "1"},
-            // Generate runtime code only for executing in web browser (and in a Web Worker if debugging)
-            {"ENVIRONMENT", enableMultithreading ? "web,worker" : "web"},
-            // Proxy all posix sockets calls to a sockets thread when managed debugging is enabled
-            {"PROXY_POSIX_SOCKETS", enableManagedDebugger ? "1" : "0"},
-            // No exceptions machinery needed when not debugging, saves code size
-            {"DISABLE_EXCEPTION_CATCHING", enableManagedDebugger ? "0" : "1"},
+            // Make generated builds only ever executable from web, saves code size.
+            // TODO: if/when we are generating a build for node.js test harness purposes, remove this line.
+            {"ENVIRONMENT", "web"},
             // In -Oz builds, Emscripten does compile time global initializer evaluation in hope that it can
             // optimize away some ctors that can be compile time executed. This does not really happen often,
             // and with MINIMAL_RUNTIME we have a better "super-constructor" approach that groups all ctors
@@ -157,16 +149,6 @@ internal static class TinyEmscripten
             // By default the musl C runtime used by Emscripten is POSIX errno aware. We do not care about
             // errno, so opt out from errno management to save a tiny bit of performance and code size.
             {"SUPPORT_ERRNO", "0"},
-            // IndexedDB not currently working with Fetch when MINIMAL_RUNTIME is used. (We don't need
-            // it anyways as long as our content sizes are nice and small. Revisit when we have 50MB+
-            // asset package files)
-            {"FETCH_SUPPORT_INDEXEDDB", "0"},
-            // We only utilize asynchronous Fetches, so do not need a dedicated Fetch Worker for sync fetches
-            // on the background.
-            {"USE_FETCH_WORKER", "0"},
-            // Initial heap size is defined by TOTAL_MEMORY, but also enable the heap to grow at runtime with
-            // ALLOW_MEMORY_GROWTH flag.
-            {"ALLOW_MEMORY_GROWTH", "1"},
             // Remove support for OES_texture_half_float and OES_texture_half_float_linear extensions if
             // they are broken. See https://bugs.webkit.org/show_bug.cgi?id=183321,
             // https://bugs.webkit.org/show_bug.cgi?id=169999,
@@ -177,30 +159,12 @@ internal static class TinyEmscripten
             {"MALLOC", "emmalloc"},
         };
 
-        if (enableMultithreading)
-        {
-            e = e.WithMultithreading_Linker(EmscriptenMultithreadingMode.Enabled);
-        }
-
-        if (runInBackgroundWorker)
-        {
-            // WebGL rendering will run in a background thread - proxy GL over to the main thread.
-            linkflags["OFFSCREEN_FRAMEBUFFER"] = "1";
-
-            // Enable the main() thread to launch in a Web Worker instead of the main browser thread.
-            linkflags["PROXY_TO_PTHREAD"] = "1";
-        }
-
         if (enableManagedDebugger)
-        {
-            e = e.WithCustomFlags_workaround(new[] {"-lwebsocket.js"});
-        }
+            linkflags["PROXY_POSIX_SOCKETS"] = "1";
 
         if (e.Toolchain.Architecture is AsmJsArchitecture)
         {
-            // Target the oldest of browsers when building to JavaScript.
             linkflags["LEGACY_VM_SUPPORT"] = "1";
-
             // In old fastcomp backend, we can separate the unreadable .asm.js content to its own .asm.js file.
             // In new LLVM backend, it is currently always separated if -s WASM=2 is set, or embedded inline
             // if -s WASM=0 is set, so this option does not apply there.
@@ -266,10 +230,20 @@ internal static class TinyEmscripten
         // the line Libraries.Add(c => c.ToolChain.Platform is WebGLPlatform, new SystemLibrary("GL")); at the top of this file
         e = e.WithCustomFlags_workaround(new[] {"-lGL"});
 
-        // Target the Emscripten Fetch API for network requests.
-        e = e.WithCustomFlags_workaround(new[] { "-s FETCH=1" });
+        e=e.WithMemoryInitFile(e.Toolchain.Architecture is AsmJsArchitecture || RunInBackgroundWorker);
+        
+        if (RunInBackgroundWorker)
+        {
+            // Specify Emscripten -s USE_PTHREADS=1 at compile time, so that C++ code that is compiled will have
+            // the __EMSCRIPTEN_PTHREADS__ preprocessor #define available to it to detect if code will be compiled
+            // single- or multithreaded.
+            e=e.WithCustomFlags_workaround(new[] { "-s USE_PTHREADS=1 " });
+        }
 
-        e = e.WithMemoryInitFile(e.Toolchain.Architecture is AsmJsArchitecture || (enableMultithreading && !UseWasmBackend));
+        // Enables async requests for web IO and Disabling IndexDB support as this is not fully implemented yet in emscripten
+        // Using custom flags as there appears to be no standard way to set the option in bee and passing the flags to the linker settings
+        // normally will cause bee to error
+        e = e.WithCustomFlags_workaround(new[] { "-s FETCH=1 -s FETCH_SUPPORT_INDEXEDDB=0" });
 
         if (UseWasmBackend && e.Toolchain.Architecture is AsmJsArchitecture)
         {

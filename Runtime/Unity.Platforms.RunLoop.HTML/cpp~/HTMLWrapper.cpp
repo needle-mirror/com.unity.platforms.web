@@ -3,7 +3,6 @@
 
 #include <emscripten.h>
 #include <emscripten/html5.h>
-#include <emscripten/threading.h>
 #include <stdio.h>
 #include <string>
 
@@ -12,19 +11,10 @@
 
 static bool (*raf)() = 0; // c# delegate
 
-#if UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
-
-typedef void (*BroadcastFunction)();
-static BroadcastFunction broadcastCallback = NULL;
-
-extern "C" bool js_html_StillWaitingForManagedDebugger(void);
-
-#endif
-
 // from liballocators
 extern "C" void unsafeutility_freetemp();
 
-static EM_BOOL tick(double /*wallclock_time_in_msecs*/, void* /*userData*/)
+static EM_BOOL tick(double /*wallclock_time_in_msecs*/, void */*userData*/)
 {
     using namespace il2cpp::gc;
     bool disabled = GarbageCollector::IsDisabled();
@@ -34,29 +24,11 @@ static EM_BOOL tick(double /*wallclock_time_in_msecs*/, void* /*userData*/)
     unsafeutility_freetemp();
     if (disabled)
         GarbageCollector::Disable();
-
-#if UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
-    // Check if the user acknowledged the "continue" button.
-    // If so, start executing managed code.
-    if (!js_html_StillWaitingForManagedDebugger())
-        broadcastCallback = NULL;
-
-    if (broadcastCallback != NULL)
-    {
-        broadcastCallback();
-    }
-    else
-#endif
     if (!raf())
     {
         raf = 0;
         return EM_FALSE; // return back to Emscripten runtime saying that animation loop should stop here
     }
-
-    // If we are in an off-main-thread loop, need to tell the main browser thread that now is the time
-    // to swap GL contents on screen
-    if (!emscripten_is_main_browser_thread())
-        emscripten_webgl_commit_frame();
     return EM_TRUE; // return back to Emscripten runtime saying that animation loop should keep going
 }
 
@@ -66,16 +38,16 @@ rafcallbackinit_html(bool (*func)())
     if (raf)
         return false;
     raf = func;
+#if __EMSCRIPTEN_PTHREADS__
     // When running in a web worker, which does not have requestAnimationFrame(), instead run a manual loop
     // with setTimeout()s. TODO: With OffscreenCanvas rAF() will likely become available in Workers, so in
     // future will probably want to feature test rAF() first, and only if not available, fall back to
     // setTimeout() loop.
-    if (!emscripten_is_main_browser_thread())
-        emscripten_set_timeout_loop(tick, 1000.0/60.0, 0);
-    else
-    // In singlethreaded build on main thread, can always use rAF().
-        emscripten_request_animation_frame_loop(tick, 0);
-
+    emscripten_set_timeout_loop(tick, 1000.0/60.0, 0);
+#else
+    // In singlethreaded build on main thread, use rAF().
+    emscripten_request_animation_frame_loop(tick, 0);
+#endif
     // Unwind back to browser, skipping executing anything after this function.
     emscripten_throw_string("unwind");
     // This line is never reached, the throw above throws a JS statement that skips over rest of the code.
@@ -84,13 +56,13 @@ rafcallbackinit_html(bool (*func)())
 
 #if UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
 
-extern "C" void js_html_displayWaitForManagedDebugger(const char* message);
-
 DOTS_EXPORT(void)
-ShowDebuggerAttachDialog(const char* message , BroadcastFunction broadcast)
+ShowDebuggerAttachDialog(const char* message)
 {
-    broadcastCallback = broadcast;
-    js_html_displayWaitForManagedDebugger(message);
+    std::string jsAlert = "alert('";
+    jsAlert += message;
+    jsAlert += "');";
+    emscripten_run_script(jsAlert.c_str());
 }
 
 #endif // UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
