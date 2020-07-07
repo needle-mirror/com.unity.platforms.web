@@ -1,7 +1,7 @@
 {
   "name": "com.unity.platforms.web",
   "displayName": "Platforms Web",
-  "version": "0.6.0-preview.3",
+  "version": "0.6.0-preview.4",
   "unity": "2020.1",
   "unityRelease": "0b9",
   "description": "Provides platform and build specific features for the Web platform.",
@@ -15,14 +15,14 @@
     "wasm"
   ],
   "dependencies": {
-    "com.unity.platforms": "0.6.0-preview.3"
+    "com.unity.platforms": "0.6.0-preview.4"
   },
   "upmCi": {
-    "footprint": "ad8d421bbb0113c92ad6bb4e6f1daac2f7b57ad5"
+    "footprint": "79aa8a3ae3bd07c8a532976a26742df7788ad6fe"
   },
   "repository": {
     "url": "https://github.com/Unity-Technologies/dots-platforms.git",
     "type": "git",
-    "revision": "d432771bf90b116eff9103514530dc5cdd33b2db"
+    "revision": "b53a1f2cbbb7b442254c633864fe93d3bdc0fc36"
   }
 }
