@@ -1,3 +1,5 @@
+using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using Unity.Build.DotsRuntime;
@@ -18,6 +20,21 @@ namespace Unity.Build.Web.DotsRuntime
         private static Process serverProcess;
         private static Process wsProcess;
 
+        internal void EnsureProcessDead(Process process)
+        {
+            if (process == null)
+                return;
+
+            try
+            {
+                process.Kill();
+                process.WaitForExit();
+            }
+            catch (InvalidOperationException) // it's already dead
+            {
+            }
+        }
+
         public override bool Run(FileInfo buildTarget)
         {
             if (!quitCallbackAdded)
@@ -35,42 +52,35 @@ namespace Unity.Build.Web.DotsRuntime
                     websockifyPath = Path.GetFullPath(jsPath);
             }
 
-            string root = Path.GetDirectoryName(EditorApplication.applicationPath);
+            string projectPath = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string stevePath = Path.Combine(projectPath, "Library", "DotsRuntimeBuild", "artifacts", "Stevedore");
+
+            string httpServerPath = Path.Combine(stevePath, "http-server", "bin", "http-server");
 
 #if UNITY_EDITOR_OSX
-            string monoPath = Path.Combine(root, "Unity.app", "Contents", "MonoBleedingEdge", "bin", "mono");
-            string nodePath = Path.Combine(root, "Unity.app", "Contents", "Tools", "nodejs", "bin", "node");
-            string rootWeb = Path.Combine(root, "PlaybackEngines", "WebGLSupport");
+            string nodePath = Path.Combine(stevePath, "node-mac-x64", "bin", "node");
+#elif UNITY_EDITOR_LINUX
+            string nodePath = Path.Combine(stevePath, "node-linux-x64", "bin", "node");
 #else
-            root = Path.Combine(root, "Data");
-            string monoPath = "\"" + Path.Combine(root, "MonoBleedingEdge", "bin", "mono.exe") + "\"";
-            string nodePath = "\"" + Path.Combine(root, "Tools", "nodejs", "node.exe") + "\"";
-            string rootWeb = Path.Combine(root, "PlaybackEngines", "WebGLSupport");
+            string nodePath = Path.Combine(stevePath, "node-win-x64", "node.exe");
 #endif
 
-            if (!Directory.Exists(rootWeb))
-                return ReportSuccessWithWarning(buildTarget.FullName, "WebGL module not installed! Unable to run web build.");
+            if (!File.Exists(nodePath) || !File.Exists(httpServerPath))
+                return ReportSuccessWithWarning(buildTarget.FullName, $"Unable to run web build: can't find either {nodePath} or {httpServerPath}");
 
-            string serverArgs = "\"" + Path.Combine(rootWeb, "BuildTools", "SimpleWebServer.exe") + "\" . 8084";
-            string websockifyArgs = "\"" + websockifyPath + "\" 54998 localhost:34999";
+            string serverArgs = $"\"{httpServerPath}\" -c-1 -s -p 8084 .";
+            string websockifyArgs = $"\"{websockifyPath}\" 54998 localhost:34999";
 
-            // Start the server
-            // Note that the server included with Unity will run but will not function properly
-            // if executed in a .net environment. It must be ran with mono to function properly.
+            // Start http-server
             var serverStartInfo = new ProcessStartInfo();
-            serverStartInfo.FileName = monoPath;
+            serverStartInfo.FileName = nodePath;
             serverStartInfo.Arguments = serverArgs;
             serverStartInfo.WorkingDirectory = buildTarget.Directory.FullName;
             serverStartInfo.CreateNoWindow = true;
             serverStartInfo.UseShellExecute = false;
 
-            if (serverProcess != null && !serverProcess.HasExited)
-            {
-                serverProcess.Kill();
-                serverProcess.WaitForExit();
-            }
-            serverProcess = new Process();
-            serverProcess.StartInfo = serverStartInfo;
+            EnsureProcessDead(serverProcess);
+            serverProcess = new Process() { StartInfo = serverStartInfo };
             var success = serverProcess.Start();
             if (!success)
             {
@@ -85,13 +95,8 @@ namespace Unity.Build.Web.DotsRuntime
             wsStartInfo.CreateNoWindow = true;
             wsStartInfo.UseShellExecute = false;
 
-            if (wsProcess != null && !wsProcess.HasExited)
-            {
-                wsProcess.Kill();
-                wsProcess.WaitForExit();
-            }
-            wsProcess = new Process();
-            wsProcess.StartInfo = wsStartInfo;
+            EnsureProcessDead(wsProcess);
+            wsProcess = new Process() { StartInfo = wsStartInfo };
             success = wsProcess.Start();
             if (!success)
             {
@@ -117,7 +122,7 @@ namespace Unity.Build.Web.DotsRuntime
         private bool ReportSuccessWithWarning(string buildPath, string message)
         {
             EditorUtility.RevealInFinder(buildPath);
-            UnityEngine.Debug.LogWarning("WebGL module not installed! Unable to run web build");
+            UnityEngine.Debug.LogWarning(message);
             return true;
         }
 
