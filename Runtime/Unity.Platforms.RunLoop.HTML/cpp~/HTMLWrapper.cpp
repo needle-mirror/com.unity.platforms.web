@@ -12,7 +12,7 @@
 
 static bool (*raf)(double) = 0; // c# delegate
 
-#if UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
+#if UNITY_DOTSRUNTIME_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
 
 typedef void (*BroadcastFunction)();
 static BroadcastFunction broadcastCallback = NULL;
@@ -35,7 +35,7 @@ static EM_BOOL tick(double wallclock_time_in_msecs, void* /*userData*/)
     if (disabled)
         GarbageCollector::Disable();
 
-#if UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
+#if UNITY_DOTSRUNTIME_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
     // Check if the user acknowledged the "continue" button.
     // If so, start executing managed code.
     if (!js_html_StillWaitingForManagedDebugger())
@@ -82,7 +82,7 @@ rafcallbackinit_html(bool (*func)(double))
     return true;
 }
 
-#if UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
+#if UNITY_DOTSRUNTIME_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
 
 extern "C" void js_html_displayWaitForManagedDebugger(const char* message);
 
@@ -93,6 +93,6 @@ ShowDebuggerAttachDialog(const char* message , BroadcastFunction broadcast)
     js_html_displayWaitForManagedDebugger(message);
 }
 
-#endif // UNITY_DOTSPLAYER_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
+#endif // UNITY_DOTSRUNTIME_IL2CPP_WAIT_FOR_MANAGED_DEBUGGER
 
 #endif

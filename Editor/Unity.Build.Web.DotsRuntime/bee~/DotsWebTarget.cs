@@ -13,6 +13,8 @@ class WebBuildConfig : IPlatformBuildConfig
 
 abstract class DotsWebTarget : DotsBuildSystemTarget
 {
+    public override bool CanUseBurst => true;
+
     protected abstract bool UseWasm { get; }
 
     protected abstract bool SupportsManagedDebugging { get; }
