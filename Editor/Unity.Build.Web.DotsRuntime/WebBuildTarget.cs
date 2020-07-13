@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using Unity.Build.Internals;
 using Unity.Build.DotsRuntime;
 using UnityEditor;
 using UnityEngine;
@@ -111,7 +112,7 @@ namespace Unity.Build.Web.DotsRuntime
             return true;
         }
 
-        public override ShellProcessOutput RunTestMode(string exeName, string workingDirPath, int timeout)
+        internal override ShellProcessOutput RunTestMode(string exeName, string workingDirPath, int timeout)
         {
             return new ShellProcessOutput
             {

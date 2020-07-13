@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.NetworkInformation;
 using System.Threading;
 using UnityEngine;
+using Unity.Build.Internals;
 using Unity.Build.DotsRuntime;
 
 namespace Unity.Build.Web.DotsRuntime
@@ -133,14 +134,14 @@ namespace Unity.Build.Web.DotsRuntime
 
         private static Process StartPosixSocketBridgeProcess()
         {
-            var shellArgs = new ShellProcessArgs
+            var shellArgs = new ShellProcessArguments
             {
                 Executable = SocketBridgeExecutable,
                 Arguments = new [] {"6690"},
             };
 
-            var posixSocketBridgeProcess = Shell.RunAsync(shellArgs);
-            return posixSocketBridgeProcess;
+            var posixSocketBridgeProcess = ShellProcess.Start(shellArgs);
+            return posixSocketBridgeProcess.Process;
         }
     }
 }
