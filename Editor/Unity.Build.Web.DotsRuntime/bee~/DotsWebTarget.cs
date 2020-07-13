@@ -15,6 +15,8 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
 {
     protected abstract bool UseWasm { get; }
 
+    protected abstract bool SupportsManagedDebugging { get; }
+
     protected override NativeProgramFormat GetExecutableFormatForConfig(DotsConfiguration config,
         bool enableManagedDebugger)
     {
@@ -47,7 +49,11 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
 
     public override DotsRuntimeCSharpProgramConfiguration CustomizeConfigForSettings(DotsRuntimeCSharpProgramConfiguration config, FriendlyJObject settings)
     {
-        var executableFormat = GetExecutableFormatForConfig(DotsConfigs.DotsConfigForSettings(settings, out _), false)
+        var executableFormat = GetExecutableFormatForConfig(DotsConfigs.DotsConfigForSettings(settings, out _),
+                SupportsManagedDebugging && DotsConfigs.ShouldEnableDevelopmentOptionForSetting("EnableManagedDebugging", new[]
+                {
+                    DotsConfiguration.Debug
+                }, settings))
             .WithLinkerSetting<EmscriptenDynamicLinker>(e => e
                 .WithCustomFlags_workaround(new[] {settings.GetString("EmscriptenCmdLine")})
                 .WithSingleFile(settings.GetBool("SingleFile"))
@@ -70,6 +76,9 @@ class DotsAsmJSTarget : DotsWebTarget
     public override string Identifier => "asmjs";
 
     public override ToolChain ToolChain => TinyEmscripten.ToolChain_AsmJS;
+
+    // Wasm2JS does not support pthreads, so the asmjs build cannot support managed debugging.
+    protected override bool SupportsManagedDebugging => false;
 }
 
 class DotsWasmTarget : DotsWebTarget
@@ -79,4 +88,6 @@ class DotsWasmTarget : DotsWebTarget
     public override string Identifier => "wasm";
 
     public override ToolChain ToolChain => TinyEmscripten.ToolChain_Wasm;
+
+    protected override bool SupportsManagedDebugging => true;
 }
