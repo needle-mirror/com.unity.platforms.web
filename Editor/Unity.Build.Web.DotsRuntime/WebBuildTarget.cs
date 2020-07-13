@@ -21,7 +21,7 @@ namespace Unity.Build.Web.DotsRuntime
         private static Process serverProcess;
         private static Process wsProcess;
 
-        internal void EnsureProcessDead(Process process)
+        internal static void EnsureProcessDead(Process process)
         {
             if (process == null)
                 return;
@@ -40,7 +40,12 @@ namespace Unity.Build.Web.DotsRuntime
         {
             if (!quitCallbackAdded)
             {
-                EditorApplication.quitting += OnEditorQuit;
+                // On domain reload, the quitCallbackAdded is reset to default (false), and
+                // registerd event handlers are reset. To ensure we don't have an zombie processes
+                // we ensure to kill processes we were tracking just prior to the assembly
+                // being reloaded OR just prior to exiting the editor.
+                AssemblyReloadEvents.beforeAssemblyReload += OnEditorUnload;
+                EditorApplication.quitting += OnEditorUnload;
                 quitCallbackAdded = true;
             }
 
@@ -129,21 +134,12 @@ namespace Unity.Build.Web.DotsRuntime
             return true;
         }
 
-        private static void OnEditorQuit()
+        private static void OnEditorUnload()
         {
-            if (serverProcess != null && !serverProcess.HasExited)
-            {
-                serverProcess.Kill();
-                serverProcess.WaitForExit();
-                serverProcess = null;
-            }
-
-            if (wsProcess != null && !wsProcess.HasExited)
-            {
-                wsProcess.Kill();
-                wsProcess.WaitForExit();
-                wsProcess = null;
-            }
+            EnsureProcessDead(serverProcess);
+            EnsureProcessDead(wsProcess);
+            serverProcess = null;
+            wsProcess = null;
 
             PosixSocketBridgeRunner.StopRunning();
         }
