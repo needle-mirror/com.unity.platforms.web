@@ -1,10 +1,10 @@
-using Bee.NativeProgramSupport.Building;
 using Bee.Toolchain.Emscripten;
 using System;
 using System.Collections.Generic;
 using DotsBuildTargets;
 using Newtonsoft.Json.Linq;
-using Unity.BuildSystem.NativeProgramSupport;
+
+using Bee.NativeProgramSupport;
 
 class WebBuildConfig : IPlatformBuildConfig
 {

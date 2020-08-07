@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Bee.NativeProgramSupport.Building;
-using Bee.Stevedore;
 using Bee.Toolchain.Emscripten;
 using Bee.Tools;
 using NiceIO;
-using Unity.BuildSystem.NativeProgramSupport;
-using Unity.BuildTools;
+using Bee.Core.Stevedore;
+
+using Bee.NativeProgramSupport;
+using Bee.Core;
 
 internal static class TinyEmscripten
 {
@@ -40,7 +40,9 @@ internal static class TinyEmscripten
         var emscripten = new StevedoreArtifact("emscripten-" + EmscriptenPackageOSName());
         var llvm = new StevedoreArtifact("emscripten-" + (UseWasmBackend ? "wasm" : "fc") + "-llvm-" + EmscriptenPackageOSName());
         var emscriptenVersion = new Version(1, 39, 17);
-        var emscriptenRoot = emscripten.Path;
+
+        var emscriptenRoot = emscripten.Path.ResolveWithFileSystem();
+        var llvmPath = llvm.Path.ResolveWithFileSystem();
 
         EmscriptenSdk sdk = null;
 
@@ -65,47 +67,50 @@ internal static class TinyEmscripten
         {
             var python = new StevedoreArtifact("winpython2-x64");
             var node = new StevedoreArtifact("node-win-x64");
-            NodeExe = node.Path.Combine("node.exe");
+
+            NodeExe = node.Path.Combine("node.exe").ResolveWithFileSystem();
+            var pythonPath = python.Path.Combine("WinPython-64bit-2.7.13.1Zero/python-2.7.13.amd64/python.exe").ResolveWithFileSystem();
 
             sdk = new EmscriptenSdk(
                 emscriptenRoot,
-                llvmRoot: llvm.Path,
-                pythonExe: python.Path.Combine("WinPython-64bit-2.7.13.1Zero/python-2.7.13.amd64/python.exe"),
+                llvmRoot: llvmPath,
+                pythonExe: pythonPath,
                 nodeExe: NodeExe,
                 architecture: arch,
                 version: emscriptenVersion,
-                isDownloadable: true,
-                backendRegistrables: new[] {emscripten, llvm, python, node});
+                isDownloadable: true
+                );
         }
         else if (HostPlatform.IsLinux)
         {
             var node = new StevedoreArtifact("node-linux-x64");
-            NodeExe = node.Path.Combine("bin/node");
+            NodeExe = node.Path.Combine("bin/node").ResolveWithFileSystem();
 
             sdk = new EmscriptenSdk(
                 emscriptenRoot,
-                llvmRoot: llvm.Path,
+                llvmRoot: llvmPath,
                 pythonExe: "/usr/bin/python2",
                 nodeExe: NodeExe,
                 architecture: arch,
                 version: emscriptenVersion,
-                isDownloadable: true,
-                backendRegistrables: new[] {emscripten, llvm, node});
+                isDownloadable: true
+                );
         }
         else if (HostPlatform.IsOSX)
         {
             var node = new StevedoreArtifact("node-mac-x64");
-            NodeExe = node.Path.Combine("bin/node");
+
+            NodeExe = node.Path.Combine("bin/node").ResolveWithFileSystem();
 
             sdk = new EmscriptenSdk(
                 emscriptenRoot: emscriptenRoot,
-                llvmRoot: llvm.Path,
+                llvmRoot: llvmPath,
                 pythonExe: "/usr/bin/python",
                 nodeExe: NodeExe,
                 architecture: arch,
                 version: emscriptenVersion,
-                isDownloadable: true,
-                backendRegistrables: new[] {emscripten, llvm, node});
+                isDownloadable: true
+                );
         }
 
         if (sdk == null)

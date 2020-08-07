@@ -1,5 +1,6 @@
 using JetBrains.Annotations;
-using Unity.BuildSystem.NativeProgramSupport;
+using Bee.Core;
+using Bee.NativeProgramSupport;
 
 [UsedImplicitly]
 class CustomizerForRunLoopHTML : AsmDefCSharpProgramCustomizer
