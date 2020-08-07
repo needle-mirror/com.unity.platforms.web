@@ -249,7 +249,19 @@ internal static class TinyEmscripten
             case "release":
                 e = e.WithDebugLevel("0");
                 e = e.WithOptLevel("z");
-                e = e.WithLinkTimeOptLevel(3);
+                if (UseWasmBackend)
+                {
+                    // Wasm backend uses the general LLVM/GCC -flto flag to enable LTO.
+                    e = e.WithCustomFlags_workaround(new[]
+                    {
+                        "-flto"
+                    });
+                }
+                else
+                {
+                    // Old fastcomp backend uses its own --llvm-lto <x> flag.
+                    e = e.WithLinkTimeOptLevel(3);
+                }
                 e = e.WithEmitSymbolMap(false); // TODO: re-enable this after Emscripten update
                 break;
             default:
