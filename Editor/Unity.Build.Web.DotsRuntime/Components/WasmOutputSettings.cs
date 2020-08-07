@@ -40,6 +40,10 @@ namespace Unity.Build.Web.DotsRuntime
         [Tooltip("If enabled, the generated build will be annotated for validity of low-level memory allocation operations. Enable to track sources of memory allocation and buffer overrun corruptions. Incurs a large performance overhead.")]
         public bool EmitRuntimeAllocationDebugChecks = false;
 
+        [CreateProperty]
+        [Tooltip("Specifies the location of the web template folder. Specified folder is treated as relative to the project root. If this value is empty, then the default web template will be used.")]
+        public string WebTemplateFolder = "";
+
         public void Modify(JsonObject jsonObject)
         {
             jsonObject["SingleFile"] = OutputSingleHTMLFile;
@@ -50,6 +54,7 @@ namespace Unity.Build.Web.DotsRuntime
             jsonObject["IncludeSymbolsForBrowserCallstacks"] = IncludeSymbolsForBrowserCallstacks;
             jsonObject["EmitRuntimeMemoryDebugChecks"] = EmitRuntimeMemoryDebugChecks;
             jsonObject["EmitRuntimeAllocationDebugChecks"] = EmitRuntimeAllocationDebugChecks;
+            jsonObject["WebTemplateFolder"] = WebTemplateFolder;
         }
     }
 }
