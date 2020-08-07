@@ -58,7 +58,7 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
                     DotsConfiguration.Debug
                 }, settings))
             .WithLinkerSetting<EmscriptenDynamicLinker>(e => e
-                .WithCustomFlags_workaround(new[] {settings.GetString("EmscriptenCmdLine")})
+                .WithCustomFlags_workaround(new[] { settings.GetString("EmscriptenCmdLine") ?? "" })
                 .WithSingleFile(settings.GetBool("SingleFile"))
             );
         config.NativeProgramConfiguration = new DotsRuntimeNativeProgramConfiguration(
