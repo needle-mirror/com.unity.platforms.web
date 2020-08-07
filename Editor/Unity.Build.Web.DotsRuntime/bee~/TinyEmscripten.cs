@@ -275,7 +275,8 @@ internal static class TinyEmscripten
             e = e.WithCustomFlags_workaround(new[]
             {
                 "--closure-args", ("--platform native,javascript --externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString()).QuoteForProcessStart(),
-                "--closure", "1"
+                "--closure", "1",
+                "-s", "CLOSURE_WARNINGS=warn"
             });
         }
 

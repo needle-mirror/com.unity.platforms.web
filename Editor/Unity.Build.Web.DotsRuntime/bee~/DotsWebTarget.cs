@@ -58,8 +58,22 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
                     DotsConfiguration.Debug
                 }, settings))
             .WithLinkerSetting<EmscriptenDynamicLinker>(e => e
-                .WithCustomFlags_workaround(new[] { settings.GetString("EmscriptenCmdLine") ?? "" })
+                .WithCustomFlags_workaround(new[] { "-s", "TOTAL_STACK=" + (settings.GetString("WasmStackSize") ?? "512KB")})
+                .WithCustomFlags_workaround(new[] { "-s", "TOTAL_MEMORY=" + (settings.GetString("WasmMemorySize") ?? "128MB")})
+                .WithCustomFlags_workaround(new[] { "-s", "ALLOW_MEMORY_GROWTH=" + (settings.GetBool("AllowWasmMemoryGrowth")?"1":"0")})
+                .WithCustomFlags_workaround(new[] { "-s", "MINIFY_HTML=" + (settings.GetBool("MinifyHTMLFile")?"1":"0")})
+                .WithCustomFlags_workaround(settings.GetBool("MinifyOutputWithClosure") ? new[] {
+                    "--closure-args", "\"--platform native,javascript --externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString() + "\"",
+                    "--closure", "1", "-s", "CLOSURE_WARNINGS=warn"
+                } : new[] {""})
+                .WithCustomFlags_workaround(new[] { settings.GetBool("EmbedCpuProfiler")?"--cpuprofiler":""})
+                .WithCustomFlags_workaround(new[] { settings.GetBool("EmbedMemoryProfiler")?"--memoryprofiler":""})
+                .WithCustomFlags_workaround(new[] { settings.GetBool("IncludeSymbolsForBrowserCallstacks")?"--profiling-funcs":""})
+                .WithCustomFlags_workaround(new[] { "-s", "ASSERTIONS=" + (settings.GetBool("EmitRuntimeAllocationDebugChecks")?"2":(settings.GetBool("EmitRuntimeMemoryDebugChecks")?"1":"0"))})
+                .WithCustomFlags_workaround(new[] { "-s", "SAFE_HEAP=" + (settings.GetBool("EmitRuntimeMemoryDebugChecks")?"1":"0")})
                 .WithSingleFile(settings.GetBool("SingleFile"))
+                // Specify extra EmscriptenCmdLine overrides last so they can override previous settings.
+                .WithCustomFlags_workaround(new[] { settings.GetString("EmscriptenCmdLine") ?? "" })
             );
         config.NativeProgramConfiguration = new DotsRuntimeNativeProgramConfiguration(
             config.NativeProgramConfiguration.CodeGen,

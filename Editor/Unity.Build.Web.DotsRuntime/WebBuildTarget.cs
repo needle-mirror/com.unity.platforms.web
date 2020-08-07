@@ -21,6 +21,13 @@ namespace Unity.Build.Web.DotsRuntime
         private static Process serverProcess;
         private static Process wsProcess;
 
+        public override Type[] UsedComponents { get; } =
+        {
+            typeof(WasmMemorySettings),
+            typeof(WasmOutputSettings),
+            typeof(EmscriptenAdvancedSettings)
+        };
+
         internal static void EnsureProcessDead(Process process)
         {
             if (process == null)
