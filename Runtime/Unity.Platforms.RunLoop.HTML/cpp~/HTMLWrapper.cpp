@@ -21,9 +21,6 @@ extern "C" bool js_html_StillWaitingForManagedDebugger(void);
 
 #endif
 
-// from liballocators
-extern "C" void unsafeutility_freetemp();
-
 static EM_BOOL tick(double wallclock_time_in_msecs, void* /*userData*/)
 {
     using namespace il2cpp::gc;
@@ -31,7 +28,6 @@ static EM_BOOL tick(double wallclock_time_in_msecs, void* /*userData*/)
     if (disabled)
         GarbageCollector::Enable();
     GarbageCollector::CollectALittle();
-    unsafeutility_freetemp();
     if (disabled)
         GarbageCollector::Disable();
 
