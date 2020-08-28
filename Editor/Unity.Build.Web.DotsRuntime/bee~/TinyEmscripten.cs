@@ -41,7 +41,9 @@ internal static class TinyEmscripten
         var llvm = new StevedoreArtifact("emscripten-" + (UseWasmBackend ? "wasm" : "fc") + "-llvm-" + EmscriptenPackageOSName());
         var emscriptenVersion = new Version(1, 39, 17);
 
-        var emscriptenRoot = emscripten.Path.ResolveWithFileSystem();
+        emscripten.GenerateUnusualPath();
+        var emscriptenRoot = emscripten.GetUnusualPath();        
+        
         var llvmPath = llvm.Path.ResolveWithFileSystem();
 
         EmscriptenSdk sdk = null;
@@ -68,7 +70,9 @@ internal static class TinyEmscripten
             var python = new StevedoreArtifact("winpython2-x64");
             var node = new StevedoreArtifact("node-win-x64");
 
-            NodeExe = node.Path.Combine("node.exe").ResolveWithFileSystem();
+            node.GenerateUnusualPath();
+            NodeExe = node.GetUnusualPath().Combine("node.exe");
+
             var pythonPath = python.Path.Combine("WinPython-64bit-2.7.13.1Zero/python-2.7.13.amd64/python.exe").ResolveWithFileSystem();
 
             sdk = new EmscriptenSdk(
@@ -84,7 +88,9 @@ internal static class TinyEmscripten
         else if (HostPlatform.IsLinux)
         {
             var node = new StevedoreArtifact("node-linux-x64");
-            NodeExe = node.Path.Combine("bin/node").ResolveWithFileSystem();
+            
+            node.GenerateUnusualPath();
+            NodeExe = node.GetUnusualPath().Combine("bin/node");
 
             sdk = new EmscriptenSdk(
                 emscriptenRoot,
@@ -100,8 +106,9 @@ internal static class TinyEmscripten
         {
             var node = new StevedoreArtifact("node-mac-x64");
 
-            NodeExe = node.Path.Combine("bin/node").ResolveWithFileSystem();
-
+            node.GenerateUnusualPath();
+            NodeExe = node.GetUnusualPath().Combine("bin/node");
+            
             sdk = new EmscriptenSdk(
                 emscriptenRoot: emscriptenRoot,
                 llvmRoot: llvmPath,

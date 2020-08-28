@@ -1,4 +1,5 @@
 using Bee.Toolchain.Emscripten;
+using Bee.Tools;
 using System;
 using System.Collections.Generic;
 using DotsBuildTargets;
@@ -53,10 +54,7 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
     public override DotsRuntimeCSharpProgramConfiguration CustomizeConfigForSettings(DotsRuntimeCSharpProgramConfiguration config, FriendlyJObject settings)
     {
         var executableFormat = GetExecutableFormatForConfig(DotsConfigs.DotsConfigForSettings(settings, out _),
-                SupportsManagedDebugging && DotsConfigs.ShouldEnableDevelopmentOptionForSetting("EnableManagedDebugging", new[]
-                {
-                    DotsConfiguration.Debug
-                }, settings))
+                SupportsManagedDebugging && config.EnableManagedDebugging)
             .WithLinkerSetting<EmscriptenDynamicLinker>(e => e
                 .WithCustomFlags_workaround(new[] { "-s", "TOTAL_STACK=" + (settings.GetString("WasmStackSize") ?? "512KB")})
                 .WithCustomFlags_workaround(new[] { "-s", "TOTAL_MEMORY=" + (settings.GetString("WasmMemorySize") ?? "128MB")})
@@ -87,6 +85,15 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
             WebTemplateFolder = settings.GetString("WebTemplateFolder"),
         };
         return config;
+    }
+
+    public override bool ValidateManagedDebugging(bool mdb)
+    {
+        if (mdb)
+        {
+            Errors.PrintWarning("Warning: Managed Debugging is disabled on WASM and ASM-JS builds.");
+        }
+        return false;
     }
 }
 

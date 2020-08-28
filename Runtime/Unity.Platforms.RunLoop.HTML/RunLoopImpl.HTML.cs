@@ -10,9 +10,14 @@ namespace Unity.Platforms
         {
         }
 
+        public static bool DisableTicks { get; set; } = false;
+
         [MonoPInvokeCallbackAttribute]
         static bool ManagedRAFCallback(double timestampInSeconds)
         {
+            if (DisableTicks)
+                return true;
+
             return staticM(timestampInSeconds);
         }
 

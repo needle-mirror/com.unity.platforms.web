@@ -1,9 +1,7 @@
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using Unity.Build.Internals;
-using Unity.Build.DotsRuntime;
 using UnityEditor;
 using UnityEngine;
 using BuildTarget = Unity.Build.DotsRuntime.BuildTarget;
@@ -12,10 +10,13 @@ namespace Unity.Build.Web.DotsRuntime
 {
     public abstract class WebBuildTarget : BuildTarget
     {
+        protected static Texture2D s_Icon = LoadIcon("Icons", "BuildSettings.WebGL");
+
         public override bool CanBuild => true;
         public override string UnityPlatformName => nameof(UnityEditor.BuildTarget.WebGL);
         public override string ExecutableExtension => ".html";
         public override bool UsesIL2CPP => true;
+        public override Texture2D Icon => s_Icon;
 
         private static bool quitCallbackAdded = false;
         private static Process serverProcess;
