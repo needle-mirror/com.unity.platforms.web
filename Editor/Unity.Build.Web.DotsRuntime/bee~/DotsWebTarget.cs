@@ -61,7 +61,7 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
                 .WithCustomFlags_workaround(new[] { "-s", "ALLOW_MEMORY_GROWTH=" + (settings.GetBool("AllowWasmMemoryGrowth")?"1":"0")})
                 .WithCustomFlags_workaround(new[] { "-s", "MINIFY_HTML=" + (settings.GetBool("MinifyHTMLFile")?"1":"0")})
                 .WithCustomFlags_workaround(settings.GetBool("MinifyOutputWithClosure") ? new[] {
-                    "--closure-args", "\"--platform native,javascript --externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString() + "\"",
+                    "--closure-args", "\"--platform native --externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString() + "\"",
                     "--closure", "1", "-s", "CLOSURE_WARNINGS=warn"
                 } : new[] {""})
                 .WithCustomFlags_workaround(new[] { settings.GetBool("EmbedCpuProfiler")?"--cpuprofiler":""})
@@ -87,13 +87,14 @@ abstract class DotsWebTarget : DotsBuildSystemTarget
         return config;
     }
 
-    public override bool ValidateManagedDebugging(bool mdb)
+    public override bool ValidateManagedDebugging(ref bool mdb)
     {
         if (mdb)
         {
             Errors.PrintWarning("Warning: Managed Debugging is disabled on WASM and ASM-JS builds.");
+            mdb = false;
         }
-        return false;
+        return true;
     }
 }
 

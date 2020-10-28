@@ -158,12 +158,20 @@ namespace Unity.Build.Web.DotsRuntime
         public override string DisplayName => "Web (AsmJS)";
         public override string BeeTargetName => "asmjs";
         public override bool SupportsManagedDebugging => false;
+
+        public override Type[] DefaultComponents { get; }
+        public override string DefaultAssetFileName => "Asmjs";
+        public override bool ShouldCreateBuildTargetByDefault => true;
     }
 
     class WasmBuildTarget : WebBuildTarget
     {
         public override string DisplayName => "Web (Wasm)";
         public override string BeeTargetName => "wasm";
+
+        public override Type[] DefaultComponents { get; }
+        public override string DefaultAssetFileName => "Wasm";
+        public override bool ShouldCreateBuildTargetByDefault => true;
     }
 
 }

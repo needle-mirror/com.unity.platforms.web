@@ -42,8 +42,8 @@ internal static class TinyEmscripten
         var emscriptenVersion = new Version(1, 39, 17);
 
         emscripten.GenerateUnusualPath();
-        var emscriptenRoot = emscripten.GetUnusualPath();        
-        
+        var emscriptenRoot = emscripten.GetUnusualPath();
+
         var llvmPath = llvm.Path.ResolveWithFileSystem();
 
         EmscriptenSdk sdk = null;
@@ -88,7 +88,7 @@ internal static class TinyEmscripten
         else if (HostPlatform.IsLinux)
         {
             var node = new StevedoreArtifact("node-linux-x64");
-            
+
             node.GenerateUnusualPath();
             NodeExe = node.GetUnusualPath().Combine("bin/node");
 
@@ -108,7 +108,7 @@ internal static class TinyEmscripten
 
             node.GenerateUnusualPath();
             NodeExe = node.GetUnusualPath().Combine("bin/node");
-            
+
             sdk = new EmscriptenSdk(
                 emscriptenRoot: emscriptenRoot,
                 llvmRoot: llvmPath,
@@ -277,11 +277,16 @@ internal static class TinyEmscripten
 
         e = e.WithMinimalRuntime(EmscriptenMinimalRuntimeMode.EnableDangerouslyAggressive);
 
-        if (EnableClosureCompiler)
+        if (variation == "release" && EnableClosureCompiler)
         {
+            // Inject -g1 (preserve whitespace) to Emscripten build so that error messages from Closure will be readable and not minified.
+            // Closure will kill this whitespace as part of its minification.
+            // TODO: Remove this the next time we update Emscripten (https://github.com/emscripten-core/emscripten/pull/12726)
+            e = e.WithDebugLevel("1");
+
             e = e.WithCustomFlags_workaround(new[]
             {
-                "--closure-args", ("--platform native,javascript --externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString()).QuoteForProcessStart(),
+                "--closure-args", ("--platform native --externs " + BuildProgram.BeeRoot.Combine("closure_externs.js").ToString()).QuoteForProcessStart(),
                 "--closure", "1",
                 "-s", "CLOSURE_WARNINGS=warn"
             });
@@ -302,7 +307,7 @@ internal static class TinyEmscripten
             // TODO: Remove this after Emscripten update, where the issue has been fixed.
             // BUG: this does not actually work. Emcc is not a child of the Bee build process.
             // Switch to use something else.
-//            Environment.SetEnvironmentVariable("BINARYEN_CORES", "1");
+            // Environment.SetEnvironmentVariable("BINARYEN_CORES", "1");
         }
 
         return e;
